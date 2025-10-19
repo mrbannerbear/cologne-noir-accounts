@@ -119,8 +119,8 @@ export default function ProductsPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div ref={headerRef} className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-2">Products</h1>
-          <p className="text-slate-600">Manage your product catalog and pricing</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">Products</h1>
+          <p className="text-gray-800">Manage your product catalog and pricing</p>
         </div>
 
         {/* Add Product Button */}

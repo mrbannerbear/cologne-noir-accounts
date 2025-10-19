@@ -130,8 +130,8 @@ export default function OrdersPage() {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div ref={headerRef} className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-2">Orders</h1>
-          <p className="text-slate-600">Manage your customer orders</p>
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">Orders</h1>
+          <p className="text-gray-800">Manage your customer orders</p>
         </div>
 
         {/* Add Order Button */}

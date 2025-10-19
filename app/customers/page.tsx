@@ -96,7 +96,7 @@ export default function CustomersPage() {
     await onSubmit(data);
     if (formRef.current) {
       gsap.to(formRef.current, {
-        scale: 0.98,
+        scale: 1,
         duration: 0.1,
         yoyo: true,
         repeat: 1
@@ -118,9 +118,9 @@ export default function CustomersPage() {
     <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-teal-50 to-cyan-50 p-4 md:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div ref={headerRef} className="mb-8">
-          <h1 className="text-4xl md:text-5xl font-bold text-slate-800 mb-2">Customers</h1>
-          <p className="text-slate-600">Manage your customer relationships</p>
+        <div className="mb-8">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-2">Customers</h1>
+          <p className="text-gray-800">Manage your customer relationships</p>
         </div>
 
         {/* Add Customer Button */}
@@ -195,7 +195,7 @@ export default function CustomersPage() {
             </div>
 
             {/* Form Actions */}
-            <div className="flex gap-3 pt-4 border-t border-slate-200">
+            <div className="flex flex-col lg:flex-row gap-3 pt-4 border-t border-slate-200 pb-4">
               <button
                 onClick={handleSubmit(handleSubmitWithAnimation)}
                 className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 font-medium"
