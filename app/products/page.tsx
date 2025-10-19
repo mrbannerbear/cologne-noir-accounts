@@ -259,10 +259,10 @@ export default function ProductsPage() {
                     className="border-b border-slate-100 hover:bg-purple-50 transition-colors duration-200"
                   >
                     <td className="px-6 py-4 text-slate-800 font-medium">{p.name}</td>
-                    <td className="px-6 py-4 text-center text-slate-700">${p.price_10ml}</td>
-                    <td className="px-6 py-4 text-center text-slate-700">${p.price_15ml}</td>
-                    <td className="px-6 py-4 text-center text-slate-700">${p.price_30ml}</td>
-                    <td className="px-6 py-4 text-center text-slate-700">${p.price_100ml}</td>
+                    <td className="px-6 py-4 text-center text-slate-700">{p.price_10ml}</td>
+                    <td className="px-6 py-4 text-center text-slate-700">{p.price_15ml}</td>
+                    <td className="px-6 py-4 text-center text-slate-700">{p.price_30ml}</td>
+                    <td className="px-6 py-4 text-center text-slate-700">{p.price_100ml}</td>
                     <td className="px-6 py-4">
                       <div className="flex gap-2 justify-center">
                         <button
@@ -322,19 +322,19 @@ export default function ProductsPage() {
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-3">
                   <div className="text-xs text-slate-600 font-medium mb-1">10ml</div>
-                  <div className="text-lg font-bold text-purple-700">${p.price_10ml}</div>
+                  <div className="text-lg font-bold text-purple-700">{p.price_10ml}</div>
                 </div>
                 <div className="bg-gradient-to-br from-fuchsia-50 to-fuchsia-100 rounded-lg p-3">
                   <div className="text-xs text-slate-600 font-medium mb-1">15ml</div>
-                  <div className="text-lg font-bold text-fuchsia-700">${p.price_15ml}</div>
+                  <div className="text-lg font-bold text-fuchsia-700">{p.price_15ml}</div>
                 </div>
                 <div className="bg-gradient-to-br from-violet-50 to-violet-100 rounded-lg p-3">
                   <div className="text-xs text-slate-600 font-medium mb-1">30ml</div>
-                  <div className="text-lg font-bold text-violet-700">${p.price_30ml}</div>
+                  <div className="text-lg font-bold text-violet-700">{p.price_30ml}</div>
                 </div>
                 <div className="bg-gradient-to-br from-pink-50 to-pink-100 rounded-lg p-3">
                   <div className="text-xs text-slate-600 font-medium mb-1">100ml</div>
-                  <div className="text-lg font-bold text-pink-700">${p.price_100ml}</div>
+                  <div className="text-lg font-bold text-pink-700">{p.price_100ml}</div>
                 </div>
               </div>
             </div>

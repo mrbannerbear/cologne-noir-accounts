@@ -312,8 +312,8 @@ export default function OrdersPage() {
                     <td className="px-6 py-4 text-slate-800">{o.customer?.name}</td>
                     <td className="px-6 py-4 text-slate-800">{o.product?.name}</td>
                     <td className="px-6 py-4 text-slate-600">{o.custom_quantity_ml ?? o.quantity?.label}</td>
-                    <td className="px-6 py-4 text-slate-800 font-medium">${o.price}</td>
-                    <td className="px-6 py-4 text-slate-600">{o.custom_price ? `$${o.custom_price}` : '-'}</td>
+                    <td className="px-6 py-4 text-slate-800 font-medium">{o.price}</td>
+                    <td className="px-6 py-4 text-slate-600">{o.custom_price ? `{o.custom_price}` : '-'}</td>
                     <td className="px-6 py-4 text-slate-500 text-sm">
                       {new Date(o.created_at).toLocaleDateString()}
                     </td>
@@ -381,12 +381,12 @@ export default function OrdersPage() {
                 </div>
                 <div className="flex justify-between py-2 border-b border-slate-100">
                   <span className="text-sm text-slate-600">Price</span>
-                  <span className="text-sm font-medium text-slate-800">${o.price}</span>
+                  <span className="text-sm font-medium text-slate-800">{o.price}</span>
                 </div>
                 {o.custom_price && (
                   <div className="flex justify-between py-2">
                     <span className="text-sm text-slate-600">Custom Price</span>
-                    <span className="text-sm font-medium text-green-600">${o.custom_price}</span>
+                    <span className="text-sm font-medium text-green-600">{o.custom_price}</span>
                   </div>
                 )}
               </div>
