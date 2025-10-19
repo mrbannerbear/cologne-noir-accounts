@@ -1,182 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabaseClient';
-import { Order, Product, Customer, Quantity, orderSchema } from '@/lib/types';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { FaEdit, FaTrash, FaSave, FaTimes } from 'react-icons/fa';
-
-// --- Form schema ---
-const orderFormSchema = z.object({
-  customer_id: z.string().min(1, 'Customer is required'),
-  product_id: z.string().min(1, 'Product is required'),
-  quantity_id: z.string().min(1, 'Quantity is required'),
-  custom_quantity_ml: z.string().optional(),
-  price: z.string().min(1, 'Price is required'),
-  custom_price: z.string().optional(),
-});
-
-type OrderFormValues = z.infer<typeof orderFormSchema>;
+import { useOrders } from '../hooks/useOrders';
 
 export default function OrdersPage() {
-  const queryClient = useQueryClient();
-  const [customerSearch, setCustomerSearch] = useState('');
-  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const {
+    ordersQuery,
+    productsQuery,
+    quantitiesQuery,
+    filteredCustomers,
+    customerSearch,
+    setCustomerSearch,
+    editingOrderId,
+    setEditingOrderId,
+    form,
+    onSubmit,
+    deleteOrderMutation,
+  } = useOrders();
 
-  // --- Queries ---
-  const { data: orders, isLoading: ordersLoading } = useQuery<Order[]>({
-    queryKey: ['orders'],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('orders')
-        .select(`
-          id,
-          price,
-          custom_price,
-          custom_quantity_ml,
-          created_at,
-          customer:customers(id, name, phone),
-          product:products(id, name, price_10ml, price_15ml, price_30ml, price_100ml),
-          quantity:quantities(id, label, value_ml)
-        `)
-        .order('created_at', { ascending: false });
+  const { register, handleSubmit, reset, setValue, watch } = form;
 
-      if (error) throw error;
-      return orderSchema.array().parse(data);
-    },
-  });
-
-  const { data: customers } = useQuery<Customer[]>({
-    queryKey: ['customers'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from<'customers', Customer>('customers').select('*');
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const { data: products } = useQuery<Product[]>({
-    queryKey: ['products'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from<'products', Product>('products').select('*');
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const { data: quantities } = useQuery<Quantity[]>({
-    queryKey: ['quantities'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from<'quantities', Quantity>('quantities').select('*');
-      if (error) throw error;
-      return data || [];
-    },
-  });
-
-  const filteredCustomers = customers?.filter(c =>
-    c.name.toLowerCase().includes(customerSearch.toLowerCase())
-  );
-
-  // --- Form setup ---
-  const { register, handleSubmit, reset, watch, setValue } = useForm<OrderFormValues>({
-    resolver: zodResolver(orderFormSchema),
-  });
-
-  const watchProductId = watch('product_id');
-  const watchQuantityId = watch('quantity_id');
-
-  useEffect(() => {
-    if (!products || !quantities) return;
-
-    const product = products.find((p) => p.id === watchProductId);
-    const quantity = quantities.find((q) => q.id === watchQuantityId);
-
-    if (product && quantity) {
-      let price = 0;
-      switch (quantity.value_ml) {
-        case 10: price = product.price_10ml; break;
-        case 15: price = product.price_15ml; break;
-        case 30: price = product.price_30ml; break;
-        case 100: price = product.price_100ml; break;
-        default: price = (product.price_10ml / 10) * quantity.value_ml;
-      }
-      setValue('price', price.toString());
-    }
-  }, [watchProductId, watchQuantityId, products, quantities, setValue]);
-
-  // --- Mutations ---
-  const addOrderMutation = useMutation({
-    mutationFn: async (newOrder: any) => {
-      const { data, error } = await supabase.from('orders').insert([newOrder]);
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      reset();
-      setCustomerSearch('');
-    },
-  });
-
-  const updateOrderMutation = useMutation({
-    mutationFn: async (updatedOrder: any) => {
-      const { data, error } = await supabase
-        .from('orders')
-        .update(updatedOrder)
-        .eq('id', updatedOrder.id);
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-      setEditingOrderId(null);
-      reset();
-    },
-  });
-
-  const deleteOrderMutation = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('orders').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['orders'] });
-    },
-  });
-
-  const onSubmit = async (values: OrderFormValues) => {
-    let customerId = values.customer_id;
-
-    if (!customers?.some(c => c.id === values.customer_id)) {
-      const { data: newCustomer, error } = await supabase
-        .from('customers')
-        .insert([{ name: values.customer_id }])
-        .select()
-        .single();
-      if (error) return;
-      customerId = newCustomer.id;
-    }
-
-    const orderData = {
-      customer_id: customerId,
-      product_id: values.product_id,
-      quantity_id: values.quantity_id,
-      custom_quantity_ml: values.custom_quantity_ml ? parseInt(values.custom_quantity_ml) : null,
-      price: parseFloat(values.price),
-      custom_price: values.custom_price ? parseFloat(values.custom_price) : null,
-    };
-
-    if (editingOrderId) {
-      updateOrderMutation.mutate({ ...orderData, id: editingOrderId });
-    } else {
-      addOrderMutation.mutate(orderData);
-    }
-  };
-
-  if (ordersLoading) return <div>Loading...</div>;
+  if (ordersQuery.isLoading) return <div>Loading...</div>;
 
   return (
     <div className="p-4 max-w-7xl mx-auto">
@@ -196,8 +40,9 @@ export default function OrdersPage() {
             </tr>
           </thead>
           <tbody>
-            {/* Inline Form Row */}
+            {/* Form Row */}
             <tr className="bg-blue-50">
+              {/* Customer */}
               <td className="p-2">
                 <input
                   {...register('customer_id')}
@@ -209,9 +54,9 @@ export default function OrdersPage() {
                   placeholder="Type to search / add"
                   className="border rounded p-1 w-full"
                 />
-                {filteredCustomers && filteredCustomers.length > 0 && (
+                {(filteredCustomers?.length ?? 0) > 0 && (
                   <ul className="absolute bg-white border rounded shadow max-h-32 overflow-y-auto z-10 mt-1">
-                    {filteredCustomers.map(c => (
+                    {filteredCustomers?.map(c => (
                       <li
                         key={c.id}
                         className="p-1 hover:bg-gray-100 cursor-pointer"
@@ -226,18 +71,22 @@ export default function OrdersPage() {
                   </ul>
                 )}
               </td>
+
+              {/* Product */}
               <td className="p-2">
                 <select {...register('product_id')} className="border rounded p-1 w-full">
                   <option value="">Select product</option>
-                  {products?.map(p => (
+                  {productsQuery.data?.map(p => (
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
               </td>
+
+              {/* Quantity */}
               <td className="p-2">
                 <select {...register('quantity_id')} className="border rounded p-1 w-full">
                   <option value="">Select qty</option>
-                  {quantities?.map(q => (
+                  {quantitiesQuery.data?.map(q => (
                     <option key={q.id} value={q.id}>{q.label}</option>
                   ))}
                 </select>
@@ -247,6 +96,8 @@ export default function OrdersPage() {
                   className="border rounded p-1 mt-1 w-full"
                 />
               </td>
+
+              {/* Price */}
               <td className="p-2">
                 <input
                   {...register('price')}
@@ -254,6 +105,8 @@ export default function OrdersPage() {
                   className="border rounded p-1 w-full bg-gray-50"
                 />
               </td>
+
+              {/* Custom Price */}
               <td className="p-2">
                 <input
                   {...register('custom_price')}
@@ -261,6 +114,7 @@ export default function OrdersPage() {
                   className="border rounded p-1 w-full"
                 />
               </td>
+
               <td className="p-2">-</td>
               <td className="p-2 flex gap-2">
                 <button
@@ -271,10 +125,7 @@ export default function OrdersPage() {
                 </button>
                 {editingOrderId && (
                   <button
-                    onClick={() => {
-                      setEditingOrderId(null);
-                      reset();
-                    }}
+                    onClick={() => { setEditingOrderId(null); reset(); }}
                     className="bg-red-500 text-white p-1 rounded hover:bg-red-600"
                   >
                     <FaTimes />
@@ -283,12 +134,9 @@ export default function OrdersPage() {
               </td>
             </tr>
 
-            {/* Existing orders */}
-            {orders?.map(o => (
-              <tr
-                key={o.id}
-                className={editingOrderId === o.id ? 'bg-yellow-50' : 'hover:bg-gray-50'}
-              >
+            {/* Existing Orders */}
+            {ordersQuery.data?.map(o => (
+              <tr key={o.id} className={editingOrderId === o.id ? 'bg-yellow-50' : 'hover:bg-gray-50'}>
                 <td className="p-2">{o.customer?.name}</td>
                 <td className="p-2">{o.product?.name}</td>
                 <td className="p-2">{o.custom_quantity_ml ?? o.quantity?.label}</td>
@@ -305,10 +153,7 @@ export default function OrdersPage() {
                       setValue('quantity_id', o.quantity?.id || '');
                       setValue('price', o.price.toString());
                       setValue('custom_price', o.custom_price?.toString() || '');
-                      setValue(
-                        'custom_quantity_ml',
-                        o.custom_quantity_ml?.toString() || ''
-                      );
+                      setValue('custom_quantity_ml', o.custom_quantity_ml?.toString() || '');
                     }}
                     className="bg-yellow-400 text-white p-1 rounded hover:bg-yellow-500"
                   >
