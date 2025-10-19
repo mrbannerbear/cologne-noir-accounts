@@ -148,7 +148,7 @@ export default function CustomersPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Full Name
                 </label>
                 <div className="relative">
@@ -163,7 +163,7 @@ export default function CustomersPage() {
 
               {/* Phone */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Phone Number
                 </label>
                 <div className="relative">
@@ -179,7 +179,7 @@ export default function CustomersPage() {
 
               {/* Email */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-sm font-medium text-gray-900 mb-2">
                   Email Address
                 </label>
                 <div className="relative">
@@ -205,7 +205,7 @@ export default function CustomersPage() {
               </button>
               <button
                 onClick={handleCancel}
-                className="flex items-center gap-2 bg-slate-200 text-slate-700 px-6 py-2.5 rounded-lg hover:bg-slate-300 transition-all duration-200 hover:scale-105 active:scale-95 font-medium"
+                className="flex items-center gap-2 bg-slate-200 text-gray-900 px-6 py-2.5 rounded-lg hover:bg-slate-300 transition-all duration-200 hover:scale-105 active:scale-95 font-medium"
               >
                 <FaTimes />
                 <span>Cancel</span>
@@ -220,10 +220,10 @@ export default function CustomersPage() {
             <table className="w-full">
               <thead>
                 <tr className="bg-gradient-to-r from-teal-100 to-cyan-50 border-b border-slate-200">
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Name</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Phone</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Email</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">Actions</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Name</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Phone</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Email</th>
+                  <th className="px-6 py-4 text-center text-sm font-semibold text-gray-900">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -243,13 +243,13 @@ export default function CustomersPage() {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-slate-700">
+                      <div className="flex items-center gap-2 text-gray-900">
                         <FaPhone className="text-teal-600 text-xs" />
                         {c.phone}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="flex items-center gap-2 text-slate-700">
+                      <div className="flex items-center gap-2 text-gray-900">
                         <FaEnvelope className="text-teal-600 text-xs" />
                         {c.email || '-'}
                       </div>
@@ -340,7 +340,7 @@ export default function CustomersPage() {
         {customersQuery.data?.length === 0 && (
           <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
             <div className="text-slate-400 text-6xl mb-4">👥</div>
-            <h3 className="text-xl font-semibold text-slate-700 mb-2">No customers yet</h3>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No customers yet</h3>
             <p className="text-slate-500">Add your first customer to get started</p>
           </div>
         )}

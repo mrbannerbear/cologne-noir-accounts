@@ -161,7 +161,7 @@ export default function Sidebar() {
                     <Icon
                       className={`text-lg transition-all duration-300 ${
                         isActive
-                          ? "text-white"
+                          ? "text-slate-700"
                           : "text-slate-700 group-hover:scale-110"
                       }`}
                     />
