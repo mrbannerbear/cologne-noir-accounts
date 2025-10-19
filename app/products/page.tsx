@@ -96,7 +96,7 @@ export default function ProductsPage() {
     await onSubmit(data);
     if (formRef.current) {
       gsap.to(formRef.current, {
-        scale: 0.98,
+        scale: 1,
         duration: 0.1,
         yoyo: true,
         repeat: 1
@@ -138,7 +138,7 @@ export default function ProductsPage() {
         {showForm && (
           <div
             ref={formRef}
-            className="mb-6 bg-white rounded-2xl shadow-xl p-6 border border-slate-200 overflow-hidden"
+            className="mb-6 bg-white rounded-2xl shadow-xl p-6 border border-slate-200 overflow-hidden pb-4"
           >
             <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
               <FaBox className="text-purple-600" />
@@ -217,7 +217,7 @@ export default function ProductsPage() {
             </div>
 
             {/* Form Actions */}
-            <div className="flex gap-3 pt-4 border-t border-slate-200">
+            <div className="flex gap-3 pt-4 border-t border-slate-200 flex-col lg:flex-row">
               <button
                 onClick={handleSubmit(handleSubmitWithAnimation)}
                 className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 font-medium"
