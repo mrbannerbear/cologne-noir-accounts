@@ -20,12 +20,15 @@ export default function OrdersPage() {
     deleteOrderMutation,
   } = useOrders();
 
-  const { register, handleSubmit, reset, setValue, watch } = form;
+  const { register, handleSubmit, reset, setValue } = form;
   const [showForm, setShowForm] = useState(false);
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+
   const formRef = useRef<HTMLDivElement | null>(null);
   const ordersRef = useRef<(HTMLElement | null)[]>([]);
   const headerRef = useRef<HTMLDivElement | null>(null);
 
+  // Animate header on mount
   useEffect(() => {
     if (headerRef.current) {
       gsap.from(headerRef.current, {
@@ -37,6 +40,7 @@ export default function OrdersPage() {
     }
   }, []);
 
+  // Animate form opening
   useEffect(() => {
     if (showForm && formRef.current) {
       gsap.from(formRef.current, {
@@ -48,6 +52,7 @@ export default function OrdersPage() {
     }
   }, [showForm]);
 
+  // Animate orders list
   useEffect(() => {
     ordersRef.current.forEach((el, i) => {
       if (el) {
@@ -62,7 +67,7 @@ export default function OrdersPage() {
     });
   }, [ordersQuery.data]);
 
-  const handleEdit = (order: { id: string; price: number; created_at: string; custom_price?: number | null | undefined; custom_quantity_ml?: number | null | undefined; customer?: { id: string; name: string; phone?: string | undefined; email?: string | undefined; } | undefined; product?: { id: string; name: string; price_10ml: number; price_15ml: number; price_30ml: number; price_100ml: number; } | undefined; quantity?: { id: string; label: string; value_ml: number; } | undefined; }) => {
+  const handleEdit = (order: any) => {
     setEditingOrderId(order.id);
     setShowForm(true);
     setValue('customer_id', order.customer?.id || '');
@@ -101,9 +106,10 @@ export default function OrdersPage() {
     setEditingOrderId(null);
     reset();
     setShowForm(false);
+    setIsCustomerDropdownOpen(false);
   };
 
-  const handleSubmitWithAnimation = async (data: { customer_id: string; product_id: string; quantity_id: string; price: string; custom_quantity_ml?: string | undefined; custom_price?: string | undefined; }) => {
+  const handleSubmitWithAnimation = async (data: any) => {
     await onSubmit(data);
     if (formRef.current) {
       gsap.to(formRef.current, {
@@ -115,6 +121,7 @@ export default function OrdersPage() {
     }
     setShowForm(false);
     reset();
+    setIsCustomerDropdownOpen(false);
   };
 
   if (ordersQuery.isLoading) {
@@ -168,21 +175,25 @@ export default function OrdersPage() {
                     onChange={e => {
                       setCustomerSearch(e.target.value);
                       setValue('customer_id', e.target.value);
+                      setIsCustomerDropdownOpen(true);
                     }}
+                    onFocus={() => setIsCustomerDropdownOpen(true)}
+                    onBlur={() => setTimeout(() => setIsCustomerDropdownOpen(false), 150)}
                     placeholder="Search or add customer"
                     className="w-full px-4 py-2.5 pl-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                   />
                   <FaSearch className="absolute left-3 top-3.5 text-slate-400 text-sm" />
                 </div>
-                {(filteredCustomers?.length ?? 0) > 0 && (
+                {isCustomerDropdownOpen && (filteredCustomers?.length ?? 0) > 0 && (
                   <ul className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                    {filteredCustomers?.map(c => (
+                    {filteredCustomers!.map(c => (
                       <li
                         key={c.id}
                         className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer transition-colors duration-150 border-b border-slate-100 last:border-b-0"
                         onClick={() => {
                           setValue('customer_id', c.id);
                           setCustomerSearch(c.name);
+                          setIsCustomerDropdownOpen(false);
                         }}
                       >
                         <div className="font-medium text-slate-800">{c.name}</div>
@@ -275,7 +286,7 @@ export default function OrdersPage() {
           </div>
         )}
 
-        {/* Orders List - Desktop Table View */}
+        {/* Orders List */}
         <div className="hidden lg:block bg-white rounded-2xl shadow-xl overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -329,7 +340,7 @@ export default function OrdersPage() {
           </div>
         </div>
 
-        {/* Orders List - Mobile Card View */}
+        {/* Mobile Card View */}
         <div className="lg:hidden space-y-4">
           {ordersQuery.data?.map((o, i) => (
             <div
