@@ -1,65 +1,20 @@
 'use client';
 
-import { useState } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { supabase } from '@/lib/supabaseClient';
-import { Product } from '@/lib/types';
-import { useForm } from 'react-hook-form';
+import { useProducts } from '../hooks/useProducts';
 
 export default function ProductsPage() {
-  const queryClient = useQueryClient();
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const {
+    productsQuery,
+    form,
+    editingId,
+    startEdit,
+    deleteProductMutation,
+    onSubmit,
+  } = useProducts();
 
-  const { data: products, isLoading } = useQuery<Product[]>({
-    queryKey: ['products'],
-    queryFn: async () => {
-      const { data, error } = await supabase.from<'products', Product>('products').select('*');
-      if (error) throw error;
-      return data || [];
-    },
-  });
+  const { register, handleSubmit } = form;
 
-  const { register, handleSubmit, reset, setValue } = useForm<Product>();
-
-  const saveProduct = useMutation({
-    mutationFn: async (product: Product) => {
-      if (editingId) {
-        const { data, error } = await supabase.from('products').update(product).eq('id', editingId);
-        if (error) throw error;
-        return data;
-      } else {
-        const { data, error } = await supabase.from('products').insert([product]);
-        if (error) throw error;
-        return data;
-      }
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['products'] });
-      reset();
-      setEditingId(null);
-    },
-  });
-
-  const deleteProduct = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('products').delete().eq('id', id);
-      if (error) throw error;
-    },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['products'] }),
-  });
-
-  const onSubmit = (data: Product) => saveProduct.mutate(data);
-
-  const startEdit = (p: Product) => {
-    setEditingId(p.id);
-    setValue('name', p.name);
-    setValue('price_10ml', p.price_10ml);
-    setValue('price_15ml', p.price_15ml);
-    setValue('price_30ml', p.price_30ml);
-    setValue('price_100ml', p.price_100ml);
-  };
-
-  if (isLoading) return <div>Loading products...</div>;
+  if (productsQuery.isLoading) return <div>Loading products...</div>;
 
   return (
     <div className="p-6">
@@ -77,7 +32,8 @@ export default function ProductsPage() {
           </tr>
         </thead>
         <tbody>
-          {products?.map((p) => (
+          {/* Existing products */}
+          {productsQuery.data?.map(p => (
             <tr key={p.id} className="hover:bg-gray-50">
               <td className="border p-2">{p.name}</td>
               <td className="border p-2">{p.price_10ml}</td>
@@ -93,7 +49,7 @@ export default function ProductsPage() {
                 </button>
                 <button
                   className="bg-red-500 px-2 py-1 rounded hover:bg-red-600"
-                  onClick={() => deleteProduct.mutate(p.id)}
+                  onClick={() => deleteProductMutation.mutate(p.id)}
                 >
                   Delete
                 </button>
