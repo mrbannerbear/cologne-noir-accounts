@@ -14,6 +14,13 @@ export const orderFormSchema = z.object({
   custom_quantity_ml: z.string().optional(),
   price: z.string().min(1, 'Price is required'),
   custom_price: z.string().optional(),
+  status: z.enum(['Pending','Confirmed','Shipped','Delivered','Cancelled']),
+  payment_status: z.enum(['Paid','Partial','Unpaid']),
+  payment_method: z.enum(['Cash','bKash','Bank','Card']).optional(),
+  discount: z.string().optional(),
+  delivery_fee: z.string().optional(),
+  product_cost: z.string().optional(),
+  notes: z.string().optional(),
 });
 
 export type OrderFormValues = z.infer<typeof orderFormSchema>;
@@ -31,9 +38,19 @@ export function useOrders() {
         .from('orders')
         .select(`
           id,
+          order_code,
           price,
           custom_price,
           custom_quantity_ml,
+          status,
+          payment_status,
+          payment_method,
+          discount,
+          delivery_fee,
+          product_cost,
+          profit,
+          total,
+          notes,
           created_at,
           customer:customers(id, name, phone),
           product:products(id, name, price_10ml, price_15ml, price_30ml, price_100ml),
@@ -168,6 +185,13 @@ export function useOrders() {
       custom_quantity_ml: values.custom_quantity_ml ? parseInt(values.custom_quantity_ml) : null,
       price: parseFloat(values.price),
       custom_price: values.custom_price ? parseFloat(values.custom_price) : null,
+      status: values.status,
+      payment_status: values.payment_status,
+      payment_method: values.payment_method || null,
+      discount: values.discount ? parseFloat(values.discount) : 0,
+      delivery_fee: values.delivery_fee ? parseFloat(values.delivery_fee) : 0,
+      product_cost: values.product_cost ? parseFloat(values.product_cost) : 0,
+      notes: values.notes || null,
     };
 
     if (editingOrderId) {
