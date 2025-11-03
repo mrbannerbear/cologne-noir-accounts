@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabaseClient';
-import { Order, Product, Customer, Quantity, orderSchema } from '@/lib/types';
+import { Order, Product, Customer, Quantity, orderSchema, productSchema, customerSchema, quantitySchema } from '@/lib/types';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -30,7 +30,7 @@ export function useOrders() {
   const [customerSearch, setCustomerSearch] = useState('');
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
 
-  // --- Queries ---
+  // --- Orders query ---
   const ordersQuery = useQuery<Order[]>({
     queryKey: ['orders'],
     queryFn: async () => {
@@ -53,16 +53,46 @@ export function useOrders() {
           notes,
           created_at,
           customer:customers(id, name, phone),
-          product:products(id, name, price_10ml, price_15ml, price_30ml, price_100ml),
+          product:products(
+            id,
+            name,
+            price_10ml,
+            price_15ml,
+            price_30ml,
+            price_100ml,
+            total_stock_ml,
+            low_stock_threshold_ml,
+            active
+          ),
           quantity:quantities(id, label, value_ml)
         `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return orderSchema.array().parse(data);
+
+      // --- Safe parsing to avoid crashing on invalid data ---
+      const parsed = (data || []).map(d => {
+        const result = orderSchema
+          .extend({
+            product: productSchema.partial().nullable().optional(),
+            customer: customerSchema.nullable().optional(),
+            quantity: quantitySchema.nullable().optional(),
+          })
+          .safeParse(d);
+
+        if (!result.success) {
+          console.error('Order parse error', result.error, d);
+          return null;
+        }
+
+        return result.data;
+      }).filter(Boolean) as Order[];
+
+      return parsed;
     },
   });
 
+  // --- Supporting queries ---
   const customersQuery = useQuery<Customer[]>({
     queryKey: ['customers'],
     queryFn: async () => {

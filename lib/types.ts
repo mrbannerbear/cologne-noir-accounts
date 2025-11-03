@@ -13,10 +13,23 @@ export type Quantity = z.infer<typeof quantitySchema>;
 export const productSchema = z.object({
   id: z.string(),
   name: z.string(),
+  sku: z.string().optional(),
+  brand: z.string(),
+  gender: z.enum(["Male", "Female", "Unisex"]),
+  season: z.string().optional(),
+
+  top_notes: z.array(z.string()).optional(),
+  middle_notes: z.array(z.string()).optional(),
+  base_notes: z.array(z.string()).optional(),
+
   price_10ml: z.number(),
   price_15ml: z.number(),
   price_30ml: z.number(),
   price_100ml: z.number(),
+
+  total_stock_ml: z.number().default(0),
+  low_stock_threshold_ml: z.number().default(20),
+  active: z.boolean().default(true),
 });
 
 export type Product = z.infer<typeof productSchema>;
