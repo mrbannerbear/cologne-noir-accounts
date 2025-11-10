@@ -35,11 +35,20 @@ export const productSchema = z.object({
 export type Product = z.infer<typeof productSchema>;
 
 // --- Customers ---
+
 export const customerSchema = z.object({
   id: z.string(),
-  name: z.string(),
-  phone: z.string().optional(),
-  email: z.string().optional(),
+  name: z.string().min(1, "Name is required"),
+  phone: z.string().optional().nullable(),
+  email: z.email().optional().nullable(),
+  address: z.string().optional().nullable(),
+  city: z.string().optional().nullable(),
+  customer_type: z.enum(["Regular", "New", "VIP"]).default("New"),
+  total_orders: z.number().default(0),
+  total_spent: z.number().default(0),
+  last_order_date: z.string().nullable().optional(),
+  notes: z.string().optional().nullable(),
+  created_at: z.string().optional(),
 });
 
 export type Customer = z.infer<typeof customerSchema>;
