@@ -6,7 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 
-// --- Form schema ---
+// --- Form schema with new date fields ---
 export const orderFormSchema = z.object({
   customer_id: z.string().min(1, 'Customer is required'),
   product_id: z.string().min(1, 'Product is required'),
@@ -21,6 +21,8 @@ export const orderFormSchema = z.object({
   delivery_fee: z.string().optional(),
   product_cost: z.string().optional(),
   notes: z.string().optional(),
+  order_date: z.string().optional(), // New field
+  delivery_date: z.string().optional(), // New field
 });
 
 export type OrderFormValues = z.infer<typeof orderFormSchema>;
@@ -51,6 +53,8 @@ export function useOrders() {
           profit,
           total,
           notes,
+          order_date,
+          delivery_date,
           created_at,
           customer:customers(id, name, phone),
           product:products(
@@ -66,26 +70,28 @@ export function useOrders() {
           ),
           quantity:quantities(id, label, value_ml)
         `)
-        .order('created_at', { ascending: false });
+        .order('order_date', { ascending: false });
 
       if (error) throw error;
 
-      // --- Safe parsing to avoid crashing on invalid data ---
+      // Transform the data to match our schema
       const parsed = (data || []).map(d => {
-        const result = orderSchema
-          .extend({
-            product: productSchema.partial().nullable().optional(),
-            customer: customerSchema.nullable().optional(),
-            quantity: quantitySchema.nullable().optional(),
-          })
-          .safeParse(d);
+        try {
+          // Handle array responses from Supabase relations
+          const customer = Array.isArray(d.customer) ? d.customer[0] : d.customer;
+          const product = Array.isArray(d.product) ? d.product[0] : d.product;
+          const quantity = Array.isArray(d.quantity) ? d.quantity[0] : d.quantity;
 
-        if (!result.success) {
-          console.error('Order parse error', result.error, d);
+          return {
+            ...d,
+            customer: customer || null,
+            product: product || null,
+            quantity: quantity || null,
+          } as Order;
+        } catch (err) {
+          console.error('Order parse error', err, d);
           return null;
         }
-
-        return result.data;
       }).filter(Boolean) as Order[];
 
       return parsed;
@@ -125,9 +131,12 @@ export function useOrders() {
     c.name.toLowerCase().includes(customerSearch.toLowerCase())
   );
 
-  // --- Form setup ---
+  // --- Form setup with default order_date ---
   const form = useForm<OrderFormValues>({
     resolver: zodResolver(orderFormSchema),
+    defaultValues: {
+      order_date: new Date().toISOString().split('T')[0], // Default to today
+    }
   });
 
   const { watch, setValue, reset } = form;
@@ -157,13 +166,15 @@ export function useOrders() {
   // --- Mutations ---
   const addOrderMutation = useMutation({
     mutationFn: async (newOrder: any) => {
-      const { data, error } = await supabase.from('orders').insert([newOrder]);
+      const { data, error } = await supabase.from('orders').insert([newOrder]).select();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
+      // Invalidate both orders AND customers to refresh customer stats
       queryClient.invalidateQueries({ queryKey: ['orders'] });
-      reset();
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
+      reset({ order_date: new Date().toISOString().split('T')[0] });
       setCustomerSearch('');
     },
   });
@@ -173,14 +184,16 @@ export function useOrders() {
       const { data, error } = await supabase
         .from('orders')
         .update(updatedOrder)
-        .eq('id', updatedOrder.id);
+        .eq('id', updatedOrder.id)
+        .select();
       if (error) throw error;
       return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
       setEditingOrderId(null);
-      reset();
+      reset({ order_date: new Date().toISOString().split('T')[0] });
     },
   });
 
@@ -191,6 +204,7 @@ export function useOrders() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['customers'] });
     },
   });
 
@@ -222,6 +236,8 @@ export function useOrders() {
       delivery_fee: values.delivery_fee ? parseFloat(values.delivery_fee) : 0,
       product_cost: values.product_cost ? parseFloat(values.product_cost) : 0,
       notes: values.notes || null,
+      order_date: values.order_date || new Date().toISOString(),
+      delivery_date: values.delivery_date || null,
     };
 
     if (editingOrderId) {

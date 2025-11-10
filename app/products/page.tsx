@@ -30,7 +30,7 @@ export default function ProductsPage() {
   // Extract unique values for filters
   const brands = Array.from(new Set(products.map(p => p.brand))).sort();
   const genders = Array.from(new Set(products.map(p => p.gender))).sort();
-  const seasons = Array.from(new Set(products.map(p => p.season).filter(Boolean))).sort();
+  const seasons = Array.from(new Set(products.map(p => p.season).filter((s): s is string => Boolean(s)))).sort();
 
   // Filter products
   const filteredProducts = products.filter(p => {

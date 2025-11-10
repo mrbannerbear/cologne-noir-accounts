@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { FaEdit, FaTrash, FaSave, FaTimes, FaPlus, FaSearch } from 'react-icons/fa';
-import { useOrders } from '../hooks/useOrders';
+import { FaEdit, FaTrash, FaSave, FaTimes, FaPlus, FaSearch, FaCalendar } from 'react-icons/fa';
+import { useOrders, OrderFormValues } from '../hooks/useOrders';
+import { Order, Customer } from '@/lib/types';
 import gsap from 'gsap';
 
 export default function OrdersPage() {
@@ -21,15 +22,12 @@ export default function OrdersPage() {
   } = useOrders();
 
   const { register, handleSubmit, reset, setValue, watch } = form;
-  const [showForm, setShowForm] = useState(false);
-  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState(false);
+  const [showForm, setShowForm] = useState<boolean>(false);
+  const [isCustomerDropdownOpen, setIsCustomerDropdownOpen] = useState<boolean>(false);
 
   const formRef = useRef<HTMLDivElement | null>(null);
-  const ordersRef = useRef<(HTMLElement | null)[]>([]);
+  const ordersRef = useRef<(HTMLDivElement | null)[]>([]);
   const headerRef = useRef<HTMLDivElement | null>(null);
-
-  const watchProductId = watch('product_id');
-  const watchQuantityId = watch('quantity_id');
 
   // Animate header on mount
   useEffect(() => {
@@ -70,7 +68,7 @@ export default function OrdersPage() {
     });
   }, [ordersQuery.data]);
 
-  const handleEdit = (order: any) => {
+  const handleEdit = (order: Order) => {
     setEditingOrderId(order.id);
     setShowForm(true);
     setValue('customer_id', order.customer?.id || '');
@@ -82,44 +80,50 @@ export default function OrdersPage() {
     setValue('custom_quantity_ml', order.custom_quantity_ml?.toString() || '');
     setValue('status', order.status);
     setValue('payment_status', order.payment_status);
-    setValue('payment_method', order.payment_method || '');
+    setValue('payment_method', order.payment_method ?? undefined);
     setValue('discount', order.discount?.toString() || '');
     setValue('delivery_fee', order.delivery_fee?.toString() || '');
     setValue('product_cost', order.product_cost?.toString() || '');
     setValue('notes', order.notes || '');
+    setValue('order_date', order.order_date?.split('T')[0] || '');
+    setValue('delivery_date', order.delivery_date?.split('T')[0] || '');
     
-    gsap.to(formRef.current, {
-      scale: 1.02,
-      duration: 0.2,
-      yoyo: true,
-      repeat: 1,
-      ease: 'power2.inOut'
-    });
+    if (formRef.current) {
+      gsap.to(formRef.current, {
+        scale: 1.02,
+        duration: 0.2,
+        yoyo: true,
+        repeat: 1,
+        ease: 'power2.inOut'
+      });
+    }
   };
 
   const handleDelete = (id: string) => {
-    const element = ordersRef.current.find(el => el?.dataset.orderId === id.toString());
-    if (element) {
-      gsap.to(element, {
-        x: 100,
-        opacity: 0,
-        duration: 0.3,
-        ease: 'power2.in',
-        onComplete: () => deleteOrderMutation.mutate(id)
-      });
-    } else {
-      deleteOrderMutation.mutate(id);
+    if (confirm('Delete this order?')) {
+      const element = ordersRef.current.find(el => el?.dataset.orderId === id.toString());
+      if (element) {
+        gsap.to(element, {
+          x: 100,
+          opacity: 0,
+          duration: 0.3,
+          ease: 'power2.in',
+          onComplete: () => deleteOrderMutation.mutate(id)
+        });
+      } else {
+        deleteOrderMutation.mutate(id);
+      }
     }
   };
 
   const handleCancel = () => {
     setEditingOrderId(null);
-    reset();
+    reset({ order_date: new Date().toISOString().split('T')[0] });
     setShowForm(false);
     setIsCustomerDropdownOpen(false);
   };
 
-  const handleSubmitWithAnimation = async (data: any) => {
+  const handleSubmitWithAnimation = async (data: OrderFormValues) => {
     await onSubmit(data);
     if (formRef.current) {
       gsap.to(formRef.current, {
@@ -130,7 +134,7 @@ export default function OrdersPage() {
       });
     }
     setShowForm(false);
-    reset();
+    reset({ order_date: new Date().toISOString().split('T')[0] });
     setIsCustomerDropdownOpen(false);
   };
 
@@ -154,7 +158,10 @@ export default function OrdersPage() {
         {/* Add Order Button */}
         {!showForm && (
           <button
-            onClick={() => setShowForm(true)}
+            onClick={() => {
+              reset({ order_date: new Date().toISOString().split('T')[0] });
+              setShowForm(true);
+            }}
             className="mb-6 flex items-center gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-6 py-3 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 active:scale-95"
           >
             <FaPlus className="text-sm" />
@@ -168,14 +175,46 @@ export default function OrdersPage() {
             ref={formRef}
             className="mb-6 bg-white rounded-2xl shadow-xl p-6 border border-slate-200 overflow-hidden pb-4"
           >
-            <h2 className="text-xl font-semibold text-slate-800 mb-4">
+            <h2 className="text-xl font-semibold text-slate-800 mb-4 flex items-center gap-2">
+              <FaCalendar className="text-blue-600" />
               {editingOrderId ? 'Edit Order' : 'Create New Order'}
             </h2>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
+              {/* Order Date */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Order Date *
+                </label>
+                <div className="relative">
+                  <input
+                    {...register('order_date')}
+                    type="date"
+                    className="w-full px-4 py-2.5 pl-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                  <FaCalendar className="absolute left-3 top-3.5 text-slate-400 text-sm" />
+                </div>
+              </div>
+
+              {/* Delivery Date */}
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">
+                  Delivery Date
+                </label>
+                <div className="relative">
+                  <input
+                    {...register('delivery_date')}
+                    type="date"
+                    placeholder="Optional"
+                    className="w-full px-4 py-2.5 pl-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  />
+                  <FaCalendar className="absolute left-3 top-3.5 text-slate-400 text-sm" />
+                </div>
+              </div>
+
               {/* Customer */}
               <div className="relative">
-                <label className="block text-sm font-medium text-slate-700 mb-2">Customer</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Customer *</label>
                 <div className="relative">
                   <input
                     {...register('customer_id')}
@@ -194,7 +233,7 @@ export default function OrdersPage() {
                 </div>
                 {isCustomerDropdownOpen && (filteredCustomers?.length ?? 0) > 0 && (
                   <ul className="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                    {filteredCustomers!.map(c => (
+                    {filteredCustomers!.map((c: Customer) => (
                       <li
                         key={c.id}
                         className="px-4 py-2.5 hover:bg-blue-50 cursor-pointer transition-colors duration-150 border-b border-slate-100 last:border-b-0"
@@ -214,10 +253,10 @@ export default function OrdersPage() {
 
               {/* Product */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Product</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Product *</label>
                 <select
                   {...register('product_id')}
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
                 >
                   <option value="">Select product</option>
                   {productsQuery.data?.map(p => (
@@ -228,10 +267,10 @@ export default function OrdersPage() {
 
               {/* Quantity */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Quantity</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Quantity *</label>
                 <select
                   {...register('quantity_id')}
-                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                  className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white"
                 >
                   <option value="">Select quantity</option>
                   {quantitiesQuery.data?.map(q => (
@@ -253,11 +292,11 @@ export default function OrdersPage() {
 
               {/* Price */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Price</label>
+                <label className="block text-sm font-medium text-slate-700 mb-2">Price *</label>
                 <input
                   {...register('price')}
                   type="number"
-                  placeholder="Auto price"
+                  placeholder="Auto calculated"
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 />
               </div>
@@ -268,15 +307,15 @@ export default function OrdersPage() {
                 <input
                   {...register('custom_price')}
                   type="number"
-                  placeholder="Optional"
+                  placeholder="Optional override"
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 />
               </div>
 
               {/* Status */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
-                <select {...register('status')} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
+                <label className="block text-sm font-medium text-slate-700 mb-2">Status *</label>
+                <select {...register('status')} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
                   <option value="Pending">Pending</option>
                   <option value="Confirmed">Confirmed</option>
                   <option value="Shipped">Shipped</option>
@@ -287,8 +326,8 @@ export default function OrdersPage() {
 
               {/* Payment Status */}
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">Payment Status</label>
-                <select {...register('payment_status')} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
+                <label className="block text-sm font-medium text-slate-700 mb-2">Payment Status *</label>
+                <select {...register('payment_status')} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
                   <option value="Paid">Paid</option>
                   <option value="Partial">Partial</option>
                   <option value="Unpaid">Unpaid</option>
@@ -298,7 +337,7 @@ export default function OrdersPage() {
               {/* Payment Method */}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Payment Method</label>
-                <select {...register('payment_method')} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200">
+                <select {...register('payment_method')} className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 bg-white">
                   <option value="">None</option>
                   <option value="Cash">Cash</option>
                   <option value="bKash">bKash</option>
@@ -313,7 +352,7 @@ export default function OrdersPage() {
                 <input
                   {...register('discount')}
                   type="number"
-                  placeholder="Optional"
+                  placeholder="0"
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 />
               </div>
@@ -324,7 +363,7 @@ export default function OrdersPage() {
                 <input
                   {...register('delivery_fee')}
                   type="number"
-                  placeholder="Optional"
+                  placeholder="0"
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 />
               </div>
@@ -335,7 +374,7 @@ export default function OrdersPage() {
                 <input
                   {...register('product_cost')}
                   type="number"
-                  placeholder="Optional"
+                  placeholder="0"
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 />
               </div>
@@ -346,84 +385,171 @@ export default function OrdersPage() {
                 <textarea
                   {...register('notes')}
                   rows={2}
-                  placeholder="Optional"
+                  placeholder="Additional order notes..."
                   className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
                 ></textarea>
               </div>
             </div>
 
             {/* Buttons */}
-            <div className="flex gap-4 justify-end">
-              <button
-                type="button"
-                onClick={handleCancel}
-                className="px-6 py-2 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-200"
-              >
-                Cancel
-              </button>
+            <div className="flex gap-3 pt-4 border-t border-slate-200">
               <button
                 type="button"
                 onClick={handleSubmit(handleSubmitWithAnimation)}
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 flex items-center gap-2"
+                className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-2.5 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 hover:scale-105 active:scale-95 font-medium"
               >
                 <FaSave />
-                Save
+                <span>{editingOrderId ? 'Update' : 'Create'} Order</span>
+              </button>
+              <button
+                type="button"
+                onClick={handleCancel}
+                className="flex items-center gap-2 bg-slate-200 text-gray-900 px-6 py-2.5 rounded-lg hover:bg-slate-300 transition-all duration-200 hover:scale-105 active:scale-95 font-medium"
+              >
+                <FaTimes />
+                <span>Cancel</span>
               </button>
             </div>
           </div>
         )}
 
         {/* Orders Table */}
-        <div className="overflow-x-auto mt-6">
-          <table className="min-w-full bg-white rounded-xl shadow-lg overflow-hidden">
-            <thead className="bg-blue-50">
-              <tr>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Customer</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Product</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Qty</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Price</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Status</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Payment</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Discount</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Delivery Fee</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Profit</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Total</th>
-                <th className="px-4 py-2 text-left text-sm font-medium text-gray-700">Notes</th>
-                <th className="px-4 py-2 text-sm font-medium text-gray-700">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {ordersQuery.data?.map((order, i) => (
-                <tr
-                  key={order.id}
-                  ref={el => { ordersRef.current[i] = el; }}
-                  data-order-id={order.id}
-                  className="border-b last:border-b-0 hover:bg-blue-50 transition-colors duration-150"
-                >
-                  <td className="px-4 py-2">{order.customer?.name}</td>
-                  <td className="px-4 py-2">{order.product?.name}</td>
-                  <td className="px-4 py-2">{order.custom_quantity_ml ?? order.quantity?.label}</td>
-                  <td className="px-4 py-2">{order.custom_price ?? order.price}</td>
-                  <td className="px-4 py-2">{order.status}</td>
-                  <td className="px-4 py-2">{order.payment_status} {order.payment_method ? `(${order.payment_method})` : ''}</td>
-                  <td className="px-4 py-2">{order.discount}</td>
-                  <td className="px-4 py-2">{order.delivery_fee}</td>
-                  <td className="px-4 py-2">{order.profit}</td>
-                  <td className="px-4 py-2">{order.total}</td>
-                  <td className="px-4 py-2">{order.notes}</td>
-                  <td className="px-4 py-2 flex gap-2">
-                    <button onClick={() => handleEdit(order)} className="text-blue-600 hover:text-blue-800">
-                      <FaEdit />
-                    </button>
-                    <button onClick={() => handleDelete(order.id)} className="text-red-600 hover:text-red-800">
-                      <FaTrash />
-                    </button>
-                  </td>
+        <div className="hidden lg:block bg-white rounded-2xl shadow-xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="bg-gradient-to-r from-blue-100 to-indigo-50 border-b border-slate-200">
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Order Date</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Delivery Date</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Customer</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Product</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Qty</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Price</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Payment</th>
+                  <th className="px-4 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {ordersQuery.data?.map((order: Order, i: number) => (
+                  <tr
+                    key={order.id}
+                    ref={(el) => { ordersRef.current[i] = el; }}
+                    data-order-id={order.id}
+                    className="border-b border-slate-100 hover:bg-blue-50 transition-colors duration-200"
+                  >
+                    <td className="px-4 py-3 text-sm">
+                      {order.order_date ? new Date(order.order_date).toLocaleDateString() : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {order.delivery_date ? new Date(order.delivery_date).toLocaleDateString() : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-sm font-medium">{order.customer?.name}</td>
+                    <td className="px-4 py-3 text-sm">{order.product?.name}</td>
+                    <td className="px-4 py-3 text-sm">{order.custom_quantity_ml ?? order.quantity?.label}</td>
+                    <td className="px-4 py-3 text-sm font-medium">{order.custom_price ?? order.price}৳</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 text-xs rounded-full ${
+                        order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
+                        order.status === 'Shipped' ? 'bg-blue-100 text-blue-700' :
+                        order.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
+                        'bg-yellow-100 text-yellow-700'
+                      }`}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm">{order.payment_status}</td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex gap-2 justify-center">
+                        <button
+                          onClick={() => handleEdit(order)}
+                          className="p-2 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-all duration-200 hover:scale-110 active:scale-95"
+                        >
+                          <FaEdit />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(order.id)}
+                          className="p-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all duration-200 hover:scale-110 active:scale-95"
+                        >
+                          <FaTrash />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
+
+        {/* Mobile Cards */}
+        <div className="lg:hidden space-y-4">
+          {ordersQuery.data?.map((order: Order, i: number) => (
+            <div
+              key={order.id}
+              ref={(el) => { ordersRef.current[i] = el; }}
+              className="bg-white rounded-xl shadow-lg p-5 border border-slate-200"
+            >
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-800">{order.customer?.name}</h3>
+                  <p className="text-sm text-slate-600">{order.product?.name}</p>
+                </div>
+                <span className={`px-2 py-1 text-xs rounded-full ${
+                  order.status === 'Delivered' ? 'bg-green-100 text-green-700' :
+                  order.status === 'Shipped' ? 'bg-blue-100 text-blue-700' :
+                  order.status === 'Cancelled' ? 'bg-red-100 text-red-700' :
+                  'bg-yellow-100 text-yellow-700'
+                }`}>
+                  {order.status}
+                </span>
+              </div>
+              
+              <div className="space-y-2 text-sm mb-3">
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Order Date:</span>
+                  <span className="font-medium">{order.order_date ? new Date(order.order_date).toLocaleDateString() : '-'}</span>
+                </div>
+                {order.delivery_date && (
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Delivery:</span>
+                    <span className="font-medium">{new Date(order.delivery_date).toLocaleDateString()}</span>
+                  </div>
+                )}
+                <div className="flex justify-between">
+                  <span className="text-slate-600">Price:</span>
+                  <span className="font-medium">{order.custom_price ?? order.price}৳</span>
+                </div>
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleEdit(order)}
+                  className="flex-1 p-2.5 bg-amber-100 text-amber-700 rounded-lg hover:bg-amber-200 transition-all"
+                >
+                  <FaEdit className="inline mr-2" />
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDelete(order.id)}
+                  className="flex-1 p-2.5 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-all"
+                >
+                  <FaTrash className="inline mr-2" />
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Empty State */}
+        {ordersQuery.data?.length === 0 && (
+          <div className="bg-white rounded-2xl shadow-xl p-12 text-center">
+            <div className="text-slate-400 text-6xl mb-4">📦</div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">No orders yet</h3>
+            <p className="text-slate-500">Create your first order to get started</p>
+          </div>
+        )}
       </div>
     </div>
   );
